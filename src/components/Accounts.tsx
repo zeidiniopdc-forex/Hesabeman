@@ -19,6 +19,7 @@ export default function Accounts({ data, onUpdate }: Props) {
     bankName: '',
     cardNumber: '',
     balance: 0,
+    smsSender: '',
     color: COLORS[0],
   });
 
@@ -132,6 +133,20 @@ export default function Accounts({ data, onUpdate }: Props) {
                 className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block flex items-center gap-1">
+                📱 سرشماره پیامک بانک
+              </label>
+              <input
+                type="text"
+                value={form.smsSender || ''}
+                onChange={e => setForm({ ...form, smsSender: e.target.value })}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                placeholder="مثال: Bank_Mellat"
+                dir="ltr"
+              />
+              <p className="text-xs text-gray-500 mt-1">برای تشخیص هوشمند پیامک‌های بانکی</p>
+            </div>
           </div>
           <div>
             <label className="text-sm text-gray-400 mb-2 block">رنگ</label>
@@ -212,9 +227,9 @@ export default function Accounts({ data, onUpdate }: Props) {
                     {formatAmount(account.balance)}
                   </p>
                 </div>
-                {account.smsPatternId && (
+                {account.smsSender && (
                   <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-full">
-                    متصل به پیامک
+                    📱 {account.smsSender}
                   </span>
                 )}
               </div>

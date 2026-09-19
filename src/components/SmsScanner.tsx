@@ -171,8 +171,13 @@ export default function SmsScanner({ data, onComplete, onUpdate }: Props) {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-bold text-sm">{pattern.bankName}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm">{pattern.bankName}</h4>
+                        <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-mono" dir="ltr">
+                          📱 {pattern.sender}
+                        </span>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
                         pattern.type === 'credit' ? 'bg-emerald-500/20 text-emerald-300' :
                         pattern.type === 'debit' ? 'bg-red-500/20 text-red-300' :
                         'bg-blue-500/20 text-blue-300'
