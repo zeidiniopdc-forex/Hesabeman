@@ -7,6 +7,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک ملت',
+    sender: 'Bank_Mellat',
     pattern: 'خرید از {merchant} به مبلغ {amount} ریال',
     sampleMessage: 'خرید از فروشگاه دیجی‌کالا به مبلغ 2,500,000 ریال - موجودی: 15,000,000 ریال',
     amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
@@ -17,6 +18,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک ملی',
+    sender: 'Bank_Melli',
     pattern: 'واریز به حساب {account} به مبلغ {amount} ریال از {source}',
     sampleMessage: 'واریز به حساب 0108547291003 به مبلغ 50,000,000 ریال از انتقال پایا',
     amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
@@ -27,6 +29,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک صادرات',
+    sender: 'Bank_Saderat',
     pattern: 'برداشت {amount} ریال از حساب {account} بابت {reason}',
     sampleMessage: 'برداشت 1,200,000 ریال از حساب 0158749632001 بابت خرید اینترنتی',
     amountRegex: 'برداشت\\s+([\\d,]+)\\s+ریال',
@@ -37,6 +40,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک پاسارگاد',
+    sender: 'Bank_Pasargad',
     pattern: 'انتقال {amount} ریال به حساب {destination}',
     sampleMessage: 'انتقال 5,000,000 ریال به حساب 0589632147002 از طریق همراه‌بانک',
     amountRegex: 'انتقال\\s+([\\d,]+)\\s+ریال',
@@ -47,6 +51,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک سامان',
+    sender: 'Bank_Saman',
     pattern: 'واریز {amount} ریال به حساب شما از {source}',
     sampleMessage: 'واریز 120,000,000 ریال به حساب شما از حقوق ماهانه',
     amountRegex: 'واریز\\s+([\\d,]+)\\s+ریال',
@@ -57,6 +62,7 @@ const sampleSmsPatterns: SmsPattern[] = [
   {
     id: uuidv4(),
     bankName: 'بانک تجارت',
+    sender: 'Bank_Tejarat',
     pattern: 'پرداخت قبض {billType} به مبلغ {amount} ریال',
     sampleMessage: 'پرداخت قبض برق به مبلغ 850,000 ریال - شناسه قبض: 77445522',
     amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
@@ -143,7 +149,6 @@ function generateAutoBudget(transactions: Transaction[]): Budget {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
-  // Get last month's transactions
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
   
@@ -152,18 +157,15 @@ function generateAutoBudget(transactions: Transaction[]): Budget {
     return d >= lastMonth && d <= lastMonthEnd;
   });
   
-  // Calculate income
   const monthlyIncome = transactions
     .filter(t => t.type === 'income' && t.isFixed)
     .reduce((sum, t) => sum + t.amount, 0) / 
     Math.max(1, new Set(transactions.filter(t => t.type === 'income').map(t => t.date.substring(0, 7))).size);
   
-  // Get fixed expenses
   const fixedExpenses = transactions
     .filter(t => t.type === 'expense' && t.isFixed)
     .reduce((sum, t) => sum + t.amount, 0);
   
-  // Get last month's spending by category
   const categorySpending: Record<string, number> = {};
   lastMonthTransactions
     .filter(t => t.type === 'expense')
@@ -171,17 +173,15 @@ function generateAutoBudget(transactions: Transaction[]): Budget {
       categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
     });
   
-  // Generate budget categories
   const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
   const categories: BudgetCategory[] = Object.entries(categorySpending).map(([name, spent], i) => ({
     id: uuidv4(),
     name,
-    limit: Math.round(spent * 1.1), // 10% buffer from last month
+    limit: Math.round(spent * 1.1),
     spent: 0,
     color: colors[i % colors.length],
   }));
   
-  // Add categories for fixed expenses not in last month
   const fixedCategories = new Set(transactions.filter(t => t.isFixed && t.type === 'expense').map(t => t.category));
   fixedCategories.forEach(cat => {
     if (!categories.find(c => c.name === cat)) {
@@ -217,7 +217,12 @@ export function getInitialData(): AppData {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Ensure theme field exists
+      if (!parsed.theme) {
+        parsed.theme = 'dark';
+      }
+      return parsed;
     } catch {
       // fall through to default
     }
@@ -231,6 +236,7 @@ export function getInitialData(): AppData {
         bankName: 'بانک ملت',
         cardNumber: '6104-3378-XXXX-XXXX',
         balance: 15000000,
+        smsSender: 'Bank_Mellat',
         color: '#3b82f6',
       },
       {
@@ -239,6 +245,7 @@ export function getInitialData(): AppData {
         bankName: 'بانک ملی',
         cardNumber: '6037-9975-XXXX-XXXX',
         balance: 85000000,
+        smsSender: 'Bank_Melli',
         color: '#22c55e',
       },
     ],
@@ -268,6 +275,7 @@ export function getInitialData(): AppData {
     ],
     budgets: [generateAutoBudget(sampleTransactions)],
     hasScannedSms: false,
+    theme: 'dark',
   };
   
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

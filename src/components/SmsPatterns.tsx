@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AppData, SmsPattern } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageSquare, CheckCircle, XCircle, Edit3, Save, Plus, Trash2 } from 'lucide-react';
+import { MessageSquare, CheckCircle, XCircle, Edit3, Save, Plus, Trash2, Smartphone } from 'lucide-react';
 
 interface Props {
   data: AppData;
@@ -14,6 +14,8 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [newPattern, setNewPattern] = useState<Partial<SmsPattern>>({
     bankName: '',
+    sender: '',
+    accountId: '',
     pattern: '',
     sampleMessage: '',
     amountRegex: '',
@@ -65,10 +67,12 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
   };
 
   const handleAdd = () => {
-    if (!newPattern.bankName || !newPattern.pattern) return;
+    if (!newPattern.bankName || !newPattern.pattern || !newPattern.sender) return;
     const pattern: SmsPattern = {
       id: uuidv4(),
       bankName: newPattern.bankName || '',
+      sender: newPattern.sender || '',
+      accountId: newPattern.accountId,
       pattern: newPattern.pattern || '',
       sampleMessage: newPattern.sampleMessage || '',
       amountRegex: newPattern.amountRegex || '',
@@ -82,7 +86,7 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
     };
     onUpdate(updated);
     setShowAdd(false);
-    setNewPattern({ bankName: '', pattern: '', sampleMessage: '', amountRegex: '', type: 'debit', approved: false });
+    setNewPattern({ bankName: '', sender: '', accountId: '', pattern: '', sampleMessage: '', amountRegex: '', type: 'debit', approved: false });
   };
 
   const handleRescan = () => {
@@ -90,6 +94,7 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
       {
         id: uuidv4(),
         bankName: 'بانک رفاه',
+        sender: 'Bank_Refah',
         pattern: 'برداشت {amount} ریال از حساب {account}',
         sampleMessage: 'برداشت 3,500,000 ریال از حساب 015478963210',
         amountRegex: 'برداشت\\s+([\\d,]+)\\s+ریال',
@@ -100,6 +105,7 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
       {
         id: uuidv4(),
         bankName: 'بانک آینده',
+        sender: 'Bank_Ayandeh',
         pattern: 'واریز حقوق {amount} ریال',
         sampleMessage: 'واریز حقوق 45,000,000 ریال به حساب شما',
         amountRegex: 'واریز\\s+([\\d,]+)\\s+ریال',
@@ -113,6 +119,14 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
       smsPatterns: [...data.smsPatterns, ...newPatterns],
     };
     onUpdate(updated);
+  };
+
+  // هوشمند: پیشنهاد حساب بر اساس سرشماره
+  const suggestAccount = (sender: string) => {
+    const account = data.accounts.find(acc => 
+      acc.smsSender && acc.smsSender.toLowerCase() === sender.toLowerCase()
+    );
+    return account;
   };
 
   return (
@@ -169,6 +183,33 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
               />
             </div>
             <div>
+              <label className="text-sm text-gray-400 mb-1 block flex items-center gap-1">
+                <Smartphone size={14} />
+                سرشماره پیامک
+              </label>
+              <input
+                type="text"
+                value={newPattern.sender}
+                onChange={e => setNewPattern({ ...newPattern, sender: e.target.value })}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                placeholder="مثال: Bank_Mellat"
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">ارتباط با حساب (اختیاری)</label>
+              <select
+                value={newPattern.accountId || ''}
+                onChange={e => setNewPattern({ ...newPattern, accountId: e.target.value })}
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">-- بدون ارتباط --</option>
+                {data.accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name} - {acc.bankName}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="text-sm text-gray-400 mb-1 block">نوع تراکنش</label>
               <select
                 value={newPattern.type}
@@ -212,6 +253,17 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
               />
             </div>
           </div>
+
+          {/* Smart Suggestion */}
+          {newPattern.sender && suggestAccount(newPattern.sender) && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-2">
+              <CheckCircle size={16} className="text-emerald-400" />
+              <span className="text-sm text-emerald-300">
+                💡 حساب مرتبط شناسایی شد: <strong>{suggestAccount(newPattern.sender)?.name}</strong>
+              </span>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
@@ -240,131 +292,171 @@ export default function SmsPatterns({ data, onUpdate }: Props) {
 
       {/* Patterns List */}
       <div className="space-y-3">
-        {filteredPatterns.map(pattern => (
-          <div
-            key={pattern.id}
-            className={`bg-white/5 border rounded-2xl p-4 transition-all ${
-              pattern.approved
-                ? 'border-emerald-500/20'
-                : 'border-white/10'
-            }`}
-          >
-            {editingId === pattern.id ? (
-              /* Edit Mode */
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={editForm.bankName || ''}
-                    onChange={e => setEditForm({ ...editForm, bankName: e.target.value })}
-                    className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
-                  />
+        {filteredPatterns.map(pattern => {
+          const linkedAccount = data.accounts.find(a => a.id === pattern.accountId);
+          const smartMatch = data.accounts.find(a => 
+            a.smsSender && a.smsSender.toLowerCase() === pattern.sender.toLowerCase()
+          );
+
+          return (
+            <div
+              key={pattern.id}
+              className={`bg-white/5 border rounded-2xl p-4 transition-all ${
+                pattern.approved
+                  ? 'border-emerald-500/20'
+                  : 'border-white/10'
+              }`}
+            >
+              {editingId === pattern.id ? (
+                /* Edit Mode */
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={editForm.bankName || ''}
+                      onChange={e => setEditForm({ ...editForm, bankName: e.target.value })}
+                      className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.sender || ''}
+                      onChange={e => setEditForm({ ...editForm, sender: e.target.value })}
+                      className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                      placeholder="سرشماره"
+                      dir="ltr"
+                    />
+                  </div>
+                  <select
+                    value={editForm.accountId || ''}
+                    onChange={e => setEditForm({ ...editForm, accountId: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="">-- بدون ارتباط --</option>
+                    {data.accounts.map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name} - {acc.bankName}</option>
+                    ))}
+                  </select>
                   <select
                     value={editForm.type || 'debit'}
                     onChange={e => setEditForm({ ...editForm, type: e.target.value as any })}
-                    className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
                   >
                     <option value="debit">برداشت</option>
                     <option value="credit">واریز</option>
                     <option value="both">هر دو</option>
                   </select>
-                </div>
-                <input
-                  type="text"
-                  value={editForm.pattern || ''}
-                  onChange={e => setEditForm({ ...editForm, pattern: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
-                  placeholder="الگوی پیامک"
-                />
-                <input
-                  type="text"
-                  value={editForm.sampleMessage || ''}
-                  onChange={e => setEditForm({ ...editForm, sampleMessage: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
-                  placeholder="نمونه پیام"
-                />
-                <input
-                  type="text"
-                  value={editForm.amountRegex || ''}
-                  onChange={e => setEditForm({ ...editForm, amountRegex: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-emerald-500"
-                  placeholder="Regex مبلغ"
-                  dir="ltr"
-                />
-                <div className="flex gap-2">
-                  <button onClick={handleSaveEdit} className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-500/30">
-                    <Save size={14} /> ذخیره
-                  </button>
-                  <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10">
-                    انصراف
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* View Mode */
-              <>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold">{pattern.bankName}</h4>
-                      {pattern.approved ? (
-                        <span className="flex items-center gap-1 text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
-                          <CheckCircle size={12} /> فعال
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
-                          در انتظار تأیید
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
-                      pattern.type === 'credit' ? 'bg-emerald-500/20 text-emerald-300' :
-                      pattern.type === 'debit' ? 'bg-red-500/20 text-red-300' :
-                      'bg-blue-500/20 text-blue-300'
-                    }`}>
-                      {pattern.type === 'credit' ? 'واریز' : pattern.type === 'debit' ? 'برداشت' : 'هر دو'}
-                    </span>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleEdit(pattern)}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-black/20 rounded-lg p-3 mb-2">
-                  <p className="text-xs text-gray-400 mb-1">الگو:</p>
-                  <p className="text-sm text-cyan-300">{pattern.pattern}</p>
-                </div>
-                
-                <div className="bg-black/20 rounded-lg p-3 mb-3">
-                  <p className="text-xs text-gray-400 mb-1">نمونه:</p>
-                  <p className="text-sm text-gray-200" dir="ltr">{pattern.sampleMessage}</p>
-                </div>
-
-                {!pattern.approved && (
+                  <input
+                    type="text"
+                    value={editForm.pattern || ''}
+                    onChange={e => setEditForm({ ...editForm, pattern: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    placeholder="الگوی پیامک"
+                  />
+                  <input
+                    type="text"
+                    value={editForm.sampleMessage || ''}
+                    onChange={e => setEditForm({ ...editForm, sampleMessage: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    placeholder="نمونه پیام"
+                  />
+                  <input
+                    type="text"
+                    value={editForm.amountRegex || ''}
+                    onChange={e => setEditForm({ ...editForm, amountRegex: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-emerald-500"
+                    placeholder="Regex مبلغ"
+                    dir="ltr"
+                  />
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleApprove(pattern.id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-300 py-2 rounded-lg hover:bg-emerald-500/30 transition-colors text-sm"
-                    >
-                      <CheckCircle size={16} /> تأیید
+                    <button onClick={handleSaveEdit} className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-lg text-sm hover:bg-emerald-500/30">
+                      <Save size={14} /> ذخیره
                     </button>
-                    <button
-                      onClick={() => handleReject(pattern.id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 text-red-300 py-2 rounded-lg hover:bg-red-500/30 transition-colors text-sm"
-                    >
-                      <Trash2 size={16} /> حذف
+                    <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-sm hover:bg-white/10">
+                      انصراف
                     </button>
                   </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
+                </div>
+              ) : (
+                /* View Mode */
+                <>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-bold">{pattern.bankName}</h4>
+                        {pattern.approved ? (
+                          <span className="flex items-center gap-1 text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
+                            <CheckCircle size={12} /> فعال
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                            در انتظار تأیید
+                          </span>
+                        )}
+                        <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-mono" dir="ltr">
+                          📱 {pattern.sender}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          pattern.type === 'credit' ? 'bg-emerald-500/20 text-emerald-300' :
+                          pattern.type === 'debit' ? 'bg-red-500/20 text-red-300' :
+                          'bg-blue-500/20 text-blue-300'
+                        }`}>
+                          {pattern.type === 'credit' ? 'واریز' : pattern.type === 'debit' ? 'برداشت' : 'هر دو'}
+                        </span>
+                        {linkedAccount && (
+                          <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">
+                            🔗 {linkedAccount.name}
+                          </span>
+                        )}
+                        {smartMatch && !linkedAccount && (
+                          <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                            💡 تطابق هوشمند: {smartMatch.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEdit(pattern)}
+                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-black/20 rounded-lg p-3 mb-2">
+                    <p className="text-xs text-gray-400 mb-1">الگو:</p>
+                    <p className="text-sm text-cyan-300">{pattern.pattern}</p>
+                  </div>
+                  
+                  <div className="bg-black/20 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-gray-400 mb-1">نمونه:</p>
+                    <p className="text-sm text-gray-200" dir="ltr">{pattern.sampleMessage}</p>
+                  </div>
+
+                  {!pattern.approved && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(pattern.id)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-300 py-2 rounded-lg hover:bg-emerald-500/30 transition-colors text-sm"
+                      >
+                        <CheckCircle size={16} /> تأیید
+                      </button>
+                      <button
+                        onClick={() => handleReject(pattern.id)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 text-red-300 py-2 rounded-lg hover:bg-red-500/30 transition-colors text-sm"
+                      >
+                        <Trash2 size={16} /> حذف
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {filteredPatterns.length === 0 && (

@@ -4,13 +4,15 @@ export interface Account {
   bankName: string;
   cardNumber: string;
   balance: number;
-  smsPatternId?: string;
+  smsSender?: string; // سرشماره پیامک بانک
   color: string;
 }
 
 export interface SmsPattern {
   id: string;
   bankName: string;
+  accountId?: string; // ارتباط با حساب
+  sender: string; // سرشماره ارسال‌کننده پیامک
   pattern: string;
   sampleMessage: string;
   amountRegex: string;
@@ -68,6 +70,7 @@ export interface AppData {
   debts: Debt[];
   budgets: Budget[];
   hasScannedSms: boolean;
+  theme: 'dark' | 'light';
 }
 
 export type TabType = 'dashboard' | 'sms' | 'accounts' | 'transactions' | 'debts' | 'budget';
