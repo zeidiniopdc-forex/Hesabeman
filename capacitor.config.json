@@ -1,0 +1,10 @@
+{
+  "appId": "com.myaccounting.app",
+  "appName": "حسابدار من",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "server": {
+    "androidScheme": "https"
+  }
+}

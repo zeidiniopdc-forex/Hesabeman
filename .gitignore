@@ -1,5 +1,26 @@
+# Dependencies
 node_modules/
-.next/
+
+# Build output
 dist/
-build/
+
+# Capacitor
+android/
+ios/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Logs
 *.log
+.next/
+build/
