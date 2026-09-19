@@ -8,35 +8,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build web app
-      run: npm run build
-
-    - name: Setup Java JDK
+    - name: Setup Java
       uses: actions/setup-java@v4
       with:
-        distribution: 'temurin'
+        distribution: 'zulu'
         java-version: '17'
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Add Android platform
+    - name: Install npm dependencies
+      run: npm install
+
+    - name: Build web app
+      run: npm run build
+
+    - name: Add Capacitor Android platform
       run: npx cap add android
 
     - name: Sync Capacitor
@@ -45,32 +44,30 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x android/gradlew
 
-    - name: Build Debug APK
+    - name: Build APK
       run: |
         cd android
         ./gradlew assembleDebug
 
-    - name: Upload APK artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: accounting-app-debug-apk
+        name: app-debug-apk
         path: android/app/build/outputs/apk/debug/app-debug.apk
-        retention-days: 30
+        retention-days: 7
 
-    - name: Create Release (on push to main)
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v1
       with:
         files: android/app/build/outputs/apk/debug/app-debug.apk
-        tag_name: v${{ github.run_number }}
-        name: Release ${{ github.run_number }}
+        tag_name: build-${{ github.run_number }}
+        name: Build ${{ github.run_number }}
         body: |
-          ## حسابدار من - نسخه ${{ github.run_number }}
+          📱 **حسابدار من - Build ${{ github.run_number }}**
           
-          ### تغییرات:
-          - آخرین تغییرات از branch main
-          
-          ### نصب:
           فایل APK را دانلود و روی دستگاه اندروید نصب کنید.
+          
+          **توجه:** این نسخه debug است.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
