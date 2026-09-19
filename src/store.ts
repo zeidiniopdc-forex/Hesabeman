@@ -3,75 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 const STORAGE_KEY = 'accounting_app_data';
 
-const sampleSmsPatterns: SmsPattern[] = [
-  {
-    id: uuidv4(),
-    bankName: 'بانک ملت',
-    sender: 'Bank_Mellat',
-    pattern: 'خرید از {merchant} به مبلغ {amount} ریال',
-    sampleMessage: 'خرید از فروشگاه دیجی‌کالا به مبلغ 2,500,000 ریال - موجودی: 15,000,000 ریال',
-    amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
-    type: 'debit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    bankName: 'بانک ملی',
-    sender: 'Bank_Melli',
-    pattern: 'واریز به حساب {account} به مبلغ {amount} ریال از {source}',
-    sampleMessage: 'واریز به حساب 0108547291003 به مبلغ 50,000,000 ریال از انتقال پایا',
-    amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
-    type: 'credit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    bankName: 'بانک صادرات',
-    sender: 'Bank_Saderat',
-    pattern: 'برداشت {amount} ریال از حساب {account} بابت {reason}',
-    sampleMessage: 'برداشت 1,200,000 ریال از حساب 0158749632001 بابت خرید اینترنتی',
-    amountRegex: 'برداشت\\s+([\\d,]+)\\s+ریال',
-    type: 'debit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    bankName: 'بانک پاسارگاد',
-    sender: 'Bank_Pasargad',
-    pattern: 'انتقال {amount} ریال به حساب {destination}',
-    sampleMessage: 'انتقال 5,000,000 ریال به حساب 0589632147002 از طریق همراه‌بانک',
-    amountRegex: 'انتقال\\s+([\\d,]+)\\s+ریال',
-    type: 'debit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    bankName: 'بانک سامان',
-    sender: 'Bank_Saman',
-    pattern: 'واریز {amount} ریال به حساب شما از {source}',
-    sampleMessage: 'واریز 120,000,000 ریال به حساب شما از حقوق ماهانه',
-    amountRegex: 'واریز\\s+([\\d,]+)\\s+ریال',
-    type: 'credit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    bankName: 'بانک تجارت',
-    sender: 'Bank_Tejarat',
-    pattern: 'پرداخت قبض {billType} به مبلغ {amount} ریال',
-    sampleMessage: 'پرداخت قبض برق به مبلغ 850,000 ریال - شناسه قبض: 77445522',
-    amountRegex: 'مبلغ\\s+([\\d,]+)\\s+ریال',
-    type: 'debit',
-    approved: false,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 const sampleTransactions: Transaction[] = [
   {
     id: uuidv4(),
@@ -249,7 +180,7 @@ export function getInitialData(): AppData {
         color: '#22c55e',
       },
     ],
-    smsPatterns: sampleSmsPatterns,
+    smsPatterns: [], // الگوهای پیامک خالی شروع می‌شوند
     transactions: sampleTransactions,
     debts: [
       {
