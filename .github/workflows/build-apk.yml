@@ -3,71 +3,53 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-
+    
+    - name: Install & Build
+      run: |
+        npm install
+        npm run build
+    
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
-
-    - name: Setup Android SDK
+    
+    - name: Setup Android
       uses: android-actions/setup-android@v3
-
-    - name: Install npm dependencies
-      run: npm install
-
-    - name: Build web app
-      run: npm run build
-
-    - name: Add Capacitor Android platform
-      run: npx cap add android
-
-    - name: Sync Capacitor
-      run: npx cap sync android
-
-    - name: Make gradlew executable
-      run: chmod +x android/gradlew
-
-    - name: Build APK
+    
+    - name: Create Android Project
       run: |
+        # Install Capacitor CLI globally
+        npm install -g @capacitor/cli
+        
+        # Add Android platform
+        npx cap add android
+        
+        # Sync
+        npx cap sync android
+        
+        # Make gradlew executable
+        chmod +x android/gradlew
+        
+        # Build APK
         cd android
         ./gradlew assembleDebug
-
+    
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug-apk
+        name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
-        retention-days: 7
-
-    - name: Create Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: android/app/build/outputs/apk/debug/app-debug.apk
-        tag_name: build-${{ github.run_number }}
-        name: Build ${{ github.run_number }}
-        body: |
-          📱 **حسابدار من - Build ${{ github.run_number }}**
-          
-          فایل APK را دانلود و روی دستگاه اندروید نصب کنید.
-          
-          **توجه:** این نسخه debug است.
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

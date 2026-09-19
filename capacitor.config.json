@@ -2,19 +2,9 @@
   "appId": "com.myaccounting.app",
   "appName": "حسابدار من",
   "webDir": "dist",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
   "server": {
     "androidScheme": "https"
-  },
-  "android": {
-    "allowMixedContent": true,
-    "captureInput": true,
-    "webContentsDebuggingEnabled": false
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 2000,
-      "backgroundColor": "#1e1b4b",
-      "showSpinner": false
-    }
   }
 }
