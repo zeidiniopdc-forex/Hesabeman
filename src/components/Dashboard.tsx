@@ -1,25 +1,44 @@
 import { AppData } from '../types';
 import { formatAmount } from '../store';
 import { useTheme } from '../ThemeContext';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowUpCircle, ArrowDownCircle, Calendar } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 interface Props {
   data: AppData;
-  onUpdate: (data: AppData) => void;
+  onUpdate: (newData: AppData) => void;
 }
 
-export default function Dashboard({ data, onUpdate }: Props) {
+export default function Dashboard({ data }: Props) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
+  // محاسبه مجموع کل حساب‌ها
   const totalBalance = data.accounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalIncome = data.transactions
-    .filter(t => t.type === 'income')
+
+  // محاسبه درآمد و هزینه ماه جاری
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const monthlyIncome = data.transactions
+    .filter(t => {
+      const date = new Date(t.date);
+      return t.type === 'income' && 
+             date.getMonth() === currentMonth && 
+             date.getFullYear() === currentYear;
+    })
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = data.transactions
-    .filter(t => t.type === 'expense')
+
+  const monthlyExpense = data.transactions
+    .filter(t => {
+      const date = new Date(t.date);
+      return t.type === 'expense' && 
+             date.getMonth() === currentMonth && 
+             date.getFullYear() === currentYear;
+    })
     .reduce((sum, t) => sum + t.amount, 0);
+
+  const monthlyBalance = monthlyIncome - monthlyExpense;
   
   const totalReceivable = data.debts
     .filter(d => d.type === 'receivable' && !d.isPaid)
@@ -46,25 +65,52 @@ export default function Dashboard({ data, onUpdate }: Props) {
     ? Math.round((currentBudget.totalSpent / currentBudget.totalBudget) * 100)
     : 0;
 
+  const monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 
+                      'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+  const currentMonthName = monthNames[currentMonth];
+
   return (
     <div className="space-y-6">
-      {/* Welcome Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-emerald-500 via-teal-500 to-cyan-600 p-6 shadow-2xl">
+      {/* کارت اصلی - مجموع کل حساب‌ها */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-8 shadow-2xl shadow-emerald-500/30">
         <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="absolute top-4 left-8 w-20 h-20 rounded-full bg-white"></div>
-          <div className="absolute bottom-4 right-12 w-32 h-32 rounded-full bg-white"></div>
+          <div className="absolute top-4 left-8 w-32 h-32 rounded-full bg-white"></div>
+          <div className="absolute bottom-4 right-12 w-48 h-48 rounded-full bg-white"></div>
         </div>
         <div className="relative z-10">
-          <p className="text-white/80 text-sm">موجودی کل حساب‌ها</p>
-          <h2 className="text-3xl font-bold text-white mt-1">{formatAmount(totalBalance)}</h2>
-          <div className="flex gap-4 mt-4 flex-wrap">
-            <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
-              <ArrowUpCircle size={16} className="text-green-200" />
-              <span className="text-sm text-white">درآمد: {formatAmount(totalIncome)}</span>
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet size={20} className="text-white/80" />
+            <p className="text-white/80 text-sm font-medium">مجموع کل حساب‌ها</p>
+          </div>
+          <h2 className="text-4xl font-bold text-white mb-6">{formatAmount(totalBalance)}</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ArrowUpCircle size={18} className="text-green-200" />
+                <span className="text-white/90 text-xs font-medium">درآمد ماه جاری</span>
+              </div>
+              <p className="text-xl font-bold text-white">{formatAmount(monthlyIncome)}</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
-              <ArrowDownCircle size={16} className="text-red-200" />
-              <span className="text-sm text-white">هزینه: {formatAmount(totalExpense)}</span>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ArrowDownCircle size={18} className="text-red-200" />
+                <span className="text-white/90 text-xs font-medium">هزینه ماه جاری</span>
+              </div>
+              <p className="text-xl font-bold text-white">{formatAmount(monthlyExpense)}</p>
+            </div>
+          </div>
+
+          {/* تراز ماه */}
+          <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className="text-white/80" />
+                <span className="text-white/90 text-sm font-medium">تراز {currentMonthName}</span>
+              </div>
+              <p className={`text-2xl font-bold ${monthlyBalance >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                {monthlyBalance >= 0 ? '+' : ''}{formatAmount(monthlyBalance)}
+              </p>
             </div>
           </div>
         </div>
@@ -89,16 +135,16 @@ export default function Dashboard({ data, onUpdate }: Props) {
         <div className={`rounded-2xl p-4 ${isDark ? 'bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/30' : 'bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200'}`}>
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={20} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
-            <span className={isDark ? 'text-purple-300 text-sm' : 'text-purple-700 text-sm'}>درآمد ماهانه</span>
+            <span className={isDark ? 'text-purple-300 text-sm' : 'text-purple-700 text-sm'}>تعداد حساب‌ها</span>
           </div>
-          <p className={`text-xl font-bold ${isDark ? 'text-purple-200' : 'text-purple-800'}`}>{formatAmount(totalIncome)}</p>
+          <p className={`text-xl font-bold ${isDark ? 'text-purple-200' : 'text-purple-800'}`}>{data.accounts.length} حساب</p>
         </div>
         <div className={`rounded-2xl p-4 ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30' : 'bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200'}`}>
           <div className="flex items-center gap-2 mb-2">
             <PiggyBank size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
-            <span className={isDark ? 'text-amber-300 text-sm' : 'text-amber-700 text-sm'}>پس‌انداز</span>
+            <span className={isDark ? 'text-amber-300 text-sm' : 'text-amber-700 text-sm'}>تراکنش‌ها</span>
           </div>
-          <p className={`text-xl font-bold ${isDark ? 'text-amber-200' : 'text-amber-800'}`}>{formatAmount(totalIncome - totalExpense)}</p>
+          <p className={`text-xl font-bold ${isDark ? 'text-amber-200' : 'text-amber-800'}`}>{data.transactions.length} مورد</p>
         </div>
       </div>
 
