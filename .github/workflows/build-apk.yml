@@ -8,48 +8,48 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Install & Build
-      run: |
-        npm install
-        npm run build
-    
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Setup Java
       uses: actions/setup-java@v4
       with:
-        distribution: 'zulu'
+        distribution: zulu
         java-version: '17'
-    
-    - name: Setup Android
+
+    - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-    
-    - name: Create Android Project
+      with:
+        packages: |
+          platform-tools
+          platforms;android-35
+          build-tools;35.0.0
+
+    - name: Install npm dependencies
+      run: npm ci
+
+    - name: Build web app
+      run: npm run build
+
+    - name: Add Android platform
+      run: npx cap add android
+
+    - name: Sync Capacitor
+      run: npx cap sync android
+
+    - name: Make gradlew executable
+      run: chmod +x android/gradlew
+
+    - name: Build APK
       run: |
-        # Install Capacitor CLI globally
-        npm install -g @capacitor/cli
-        
-        # Add Android platform
-        npx cap add android
-        
-        # Sync
-        npx cap sync android
-        
-        # Make gradlew executable
-        chmod +x android/gradlew
-        
-        # Build APK
         cd android
         ./gradlew assembleDebug
-    
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
+        name: accounting-app-apk
         path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
